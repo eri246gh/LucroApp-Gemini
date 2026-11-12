@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lucroapp-v4';
+const CACHE_NAME = 'lucroapp-v5';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -13,7 +13,6 @@ const ASSETS_TO_CACHE = [
   './js/database/repositories.js',
   './js/modules/dashboard.js',
   './js/modules/records.js',
-  './js/modules/cofrinho.js',
   './js/modules/vehicles.js',
   './js/modules/fuel.js',
   './js/modules/reports.js',
