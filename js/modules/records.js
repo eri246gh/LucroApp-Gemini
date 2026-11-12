@@ -67,10 +67,11 @@ export const RecordsModule = {
     const vehicles = await VehicleRepository.getAll();
     if (!vehicles.length) {
       container.innerHTML = `
-        <section class="card stack-md">
+        <section class="surface stack-md">
+          <span class="eyebrow">Pré-requisito</span>
           <h1 class="page-title">Cadastre um veículo primeiro</h1>
-          <p class="text-muted">Você precisa ter ao menos um veículo cadastrado para calcular combustível, manutenção e depreciação.</p>
-          <div><a href="#/veiculos" class="btn btn-primary">Cadastrar Veículo</a></div>
+          <p class="text-muted">É necessário ter ao menos um veículo cadastrado para calcular os custos operacionais.</p>
+          <div><a href="#/veiculos" class="btn btn-primary">Ir para Veículos</a></div>
         </section>
       `;
       return;
@@ -81,12 +82,16 @@ export const RecordsModule = {
     container.innerHTML = `
       <section class="stack-md" aria-labelledby="form-heading">
         <div class="page-header">
-          <h1 id="form-heading" class="page-title">Lançar Trabalho</h1>
+          <div class="stack-xs">
+            <span class="eyebrow">Entrada Operacional</span>
+            <h1 id="form-heading" class="page-title">Lançar Trabalho</h1>
+          </div>
+          <a href="#/inicio" class="btn btn-secondary btn-sm">Cancelar</a>
         </div>
 
-        <div id="form-feedback" class="alert-box alert-error hidden" role="alert"></div>
+        <div id="form-feedback" class="notice notice-strong hidden" role="alert"></div>
 
-        <form id="work-form" class="card stack-md" novalidate>
+        <form id="work-form" class="surface stack-md" novalidate>
           <div class="form-grid">
             <div class="form-group">
               <label for="w-vehicle">Veículo Utilizado</label>
@@ -96,12 +101,12 @@ export const RecordsModule = {
             </div>
 
             <div class="form-group">
-              <label for="w-date">Data do Trabalho</label>
+              <label for="w-date">Data</label>
               <input type="date" id="w-date" value="${Dates.getTodayISO()}" required>
             </div>
 
             <div class="form-group">
-              <label for="w-mode">Modo de Registro</label>
+              <label for="w-mode">Tipo de Registro</label>
               <select id="w-mode">
                 <option value="full_day">Dia Completo</option>
                 <option value="shift">Por Turno</option>
@@ -120,22 +125,21 @@ export const RecordsModule = {
 
             <div class="form-group">
               <label for="w-revenue">Faturamento Bruto (R$)</label>
-              <input type="number" step="0.01" min="0" id="w-revenue" required placeholder="Ex: 320.00">
+              <input type="number" step="0.01" min="0" id="w-revenue" required placeholder="0,00">
             </div>
 
             <div class="form-group">
               <label for="w-km">Quilometragem Rodada (km)</label>
-              <input type="number" step="0.1" min="0.1" id="w-km" required placeholder="Ex: 145.5">
+              <input type="number" step="0.1" min="0.1" id="w-km" required placeholder="0,0">
             </div>
           </div>
 
-          <!-- Prévia Financeira em Tempo Real -->
-          <div id="live-preview" class="card stack-sm" aria-live="polite">
-            <span class="kpi-label">Prévia do Resultado Estimado</span>
-            <p class="field-hint">Preencha faturamento e quilometragem para visualizar a prévia antes de confirmar.</p>
+          <div id="live-preview" class="notice stack-sm" aria-live="polite">
+            <span class="eyebrow">Prévia do Cálculo</span>
+            <p class="text-muted">Preencha o faturamento bruto e a distância para visualizar a decomposição.</p>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block">Confirmar e Salvar Lançamento</button>
+          <button type="submit" class="btn btn-primary btn-block">Salvar Lançamento</button>
         </form>
       </section>
     `;
@@ -155,8 +159,8 @@ export const RecordsModule = {
 
       if (!v || isNaN(rev) || rev < 0 || isNaN(km) || km <= 0) {
         previewBox.innerHTML = `
-          <span class="kpi-label">Prévia do Resultado Estimado</span>
-          <p class="field-hint">Informe faturamento (>= 0) e quilometragem (> 0) para simular.</p>
+          <span class="eyebrow">Prévia do Cálculo</span>
+          <p class="text-muted">Informe faturamento (>= 0) e quilometragem (> 0) para simular.</p>
         `;
         return;
       }
@@ -174,25 +178,25 @@ export const RecordsModule = {
 
       previewBox.innerHTML = `
         <div class="row-between">
-          <span class="kpi-label">Prévia do Resultado</span>
-          <span class="badge badge-neutral">Margem: ${marginStr}</span>
+          <span class="eyebrow">Prévia do Resultado</span>
+          <span class="pill pill-outline">Margem: ${marginStr}</span>
         </div>
-        <div class="grid-12 mt-2">
-          <div class="col-6-sm col-3">
-            <span class="field-hint">Combustível</span>
-            <div class="tabular text-red">-${Money.format(calc.fuelCostCents)}</div>
+        <div class="ledger-list mt-2">
+          <div class="ledger-row">
+            <span class="text-muted">Combustível Estimado</span>
+            <span class="ledger-amount">−${Money.format(calc.fuelCostCents)}</span>
           </div>
-          <div class="col-6-sm col-3">
-            <span class="field-hint">Manutenção</span>
-            <div class="tabular text-yellow">-${Money.format(calc.maintReserveCents)}</div>
+          <div class="ledger-row">
+            <span class="text-muted">Reserva Manutenção</span>
+            <span class="ledger-amount">−${Money.format(calc.maintReserveCents)}</span>
           </div>
-          <div class="col-6-sm col-3">
-            <span class="field-hint">Dinheiro Livre</span>
-            <div class="tabular">${Money.format(calc.availableMoneyCents)}</div>
+          <div class="ledger-row">
+            <span>Dinheiro Livre Estimado</span>
+            <span class="ledger-amount text-strong">${Money.format(calc.availableMoneyCents)}</span>
           </div>
-          <div class="col-6-sm col-3">
-            <span class="field-hint">Lucro Econômico</span>
-            <strong class="tabular ${calc.economicProfitCents >= 0 ? 'text-green' : 'text-red'}">${Money.format(calc.economicProfitCents)}</strong>
+          <div class="ledger-row is-total">
+            <span>Lucro Econômico Real</span>
+            <span class="ledger-amount">${Money.format(calc.economicProfitCents)}</span>
           </div>
         </div>
       `;
@@ -220,7 +224,6 @@ export const RecordsModule = {
       } catch (err) {
         feedbackBox.textContent = err.message;
         feedbackBox.classList.remove('hidden');
-        feedbackBox.focus();
       }
     });
   },
@@ -233,13 +236,16 @@ export const RecordsModule = {
     container.innerHTML = `
       <section class="stack-md" aria-labelledby="hist-heading">
         <div class="page-header">
-          <h1 id="hist-heading" class="page-title">Histórico de Jornadas</h1>
+          <div class="stack-xs">
+            <span class="eyebrow">Livro-Razão Operacional</span>
+            <h1 id="hist-heading" class="page-title">Histórico de Jornadas</h1>
+          </div>
           <a href="#/novo" class="btn btn-primary">+ Novo Registro</a>
         </div>
 
-        <div class="card form-grid">
+        <div class="surface form-grid">
           <div class="form-group">
-            <label for="hist-vehicle-filter">Filtrar por Veículo</label>
+            <label for="hist-vehicle-filter">Veículo</label>
             <select id="hist-vehicle-filter">
               <option value="all">Todos os Veículos</option>
               ${vehicles.map(v => `<option value="${v.id}">${v.brand} ${v.model}</option>`).join('')}
@@ -249,7 +255,7 @@ export const RecordsModule = {
 
         <div id="snapshot-detail-area" class="hidden"></div>
 
-        <div class="card table-wrap" id="history-table-wrap"></div>
+        <div class="surface table-wrap" id="history-table-wrap"></div>
       </section>
     `;
 
@@ -268,11 +274,11 @@ export const RecordsModule = {
           <thead>
             <tr>
               <th>Data</th>
-              <th>Turno / Modo</th>
+              <th>Turno</th>
               <th>Veículo</th>
               <th class="num text-right">Distância</th>
               <th class="num text-right">Bruto</th>
-              <th class="num text-right">Dinheiro Livre</th>
+              <th class="num text-right">Livre</th>
               <th class="num text-right">Lucro Econômico</th>
               <th class="text-right">Ações</th>
             </tr>
@@ -283,19 +289,19 @@ export const RecordsModule = {
               const sign = r.snapshot.economicProfitCents > 0 ? '+' : '';
               return `
                 <tr>
-                  <td>${Dates.formatBR(r.date)}</td>
+                  <td class="tabular">${Dates.formatBR(r.date)}</td>
                   <td>${r.mode === 'full_day' ? 'Dia Completo' : r.shift}</td>
                   <td>${r.snapshot.vehicleModel || 'Veículo'}</td>
                   <td class="num text-right">${r.distanceKm.toFixed(1)} km</td>
                   <td class="num text-right">${Money.format(r.snapshot.revenueCents)}</td>
                   <td class="num text-right">${Money.format(r.snapshot.availableMoneyCents)}</td>
-                  <td class="num text-right ${r.snapshot.economicProfitCents >= 0 ? 'text-green' : 'text-red'}">
-                    <strong>${sign}${Money.format(r.snapshot.economicProfitCents)}</strong>
-                    <div class="field-hint">${status.label}</div>
+                  <td class="num text-right">
+                    <div class="text-strong">${sign}${Money.format(r.snapshot.economicProfitCents)}</div>
+                    <div class="metric-note">${status.label}</div>
                   </td>
                   <td class="text-right">
                     <div class="row-wrap">
-                      <button type="button" class="btn btn-secondary btn-sm" data-view="${r.id}">Detalhes</button>
+                      <button type="button" class="btn btn-secondary btn-sm" data-view="${r.id}">Snapshot</button>
                       <button type="button" class="btn btn-danger btn-sm" data-delete="${r.id}">Excluir</button>
                     </div>
                   </td>
@@ -312,17 +318,17 @@ export const RecordsModule = {
           if (!rec) return;
           detailArea.classList.remove('hidden');
           detailArea.innerHTML = `
-            <article class="card stack-sm" aria-label="Detalhamento preservado do lançamento">
+            <article class="surface stack-sm" aria-label="Parâmetros preservados">
               <div class="row-between">
-                <h3>Snapshot Preservado — ${Dates.formatBR(rec.date)} (${rec.mode === 'full_day' ? 'Dia Completo' : rec.shift})</h3>
+                <h2 class="section-title">Snapshot Preservado — ${Dates.formatBR(rec.date)} (${rec.mode === 'full_day' ? 'Dia Completo' : rec.shift})</h2>
                 <button type="button" id="close-detail" class="btn btn-secondary btn-sm">Fechar</button>
               </div>
-              <p class="field-hint">Parâmetros vigentes na data do registro (Fórmula v${rec.snapshot.formulaVersion || '1.0'}):</p>
+              <p class="metric-note">Parâmetros congelados no momento do registro (Fórmula v${rec.snapshot.formulaVersion || '1.0'}):</p>
               <div class="grid-12 mt-2">
-                <div class="col-6-sm col-3"><span class="field-hint">Consumo</span><div>${rec.snapshot.kmPerLiter} km/l</div></div>
-                <div class="col-6-sm col-3"><span class="field-hint">Combustível/L</span><div class="tabular">${Money.format(rec.snapshot.fuelPriceCents)}</div></div>
-                <div class="col-6-sm col-3"><span class="field-hint">Manutenção/km</span><div class="tabular">R$ ${Number(rec.snapshot.maintCostPerKm).toFixed(2)}</div></div>
-                <div class="col-6-sm col-3"><span class="field-hint">Depreciação/km</span><div class="tabular">R$ ${Number(rec.snapshot.deprCostPerKm).toFixed(2)}</div></div>
+                <div class="col-6-sm col-3"><span class="eyebrow">Consumo</span><div class="tabular mt-2">${rec.snapshot.kmPerLiter} km/l</div></div>
+                <div class="col-6-sm col-3"><span class="eyebrow">Combustível</span><div class="tabular mt-2">${Money.format(rec.snapshot.fuelPriceCents)}/L</div></div>
+                <div class="col-6-sm col-3"><span class="eyebrow">Manutenção</span><div class="tabular mt-2">R$ ${Number(rec.snapshot.maintCostPerKm).toFixed(2)}/km</div></div>
+                <div class="col-6-sm col-3"><span class="eyebrow">Depreciação</span><div class="tabular mt-2">R$ ${Number(rec.snapshot.deprCostPerKm).toFixed(2)}/km</div></div>
               </div>
             </article>
           `;
@@ -333,7 +339,7 @@ export const RecordsModule = {
       tableWrap.querySelectorAll('[data-delete]').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-delete');
-          if (confirm('Confirmar exclusão definitiva deste registro de trabalho?')) {
+          if (confirm('Confirmar exclusão definitiva deste registro?')) {
             await RecordRepository.delete(id);
             this.renderHistory(container, settings);
           }
