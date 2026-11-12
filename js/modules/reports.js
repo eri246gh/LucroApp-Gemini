@@ -16,9 +16,16 @@ export const ReportsModule = {
     const records = await RecordRepository.getByDateRange(range.start, range.end, vehicleFilter);
     const summary = consolidatePeriod(records);
 
-    const profitPerKm = summary.totalDistanceKm > 0 ? Math.round(summary.economicProfitCents / summary.totalDistanceKm) : 0;
-    const revenuePerKm = summary.totalDistanceKm > 0 ? Math.round(summary.totalRevenueCents / summary.totalDistanceKm) : 0;
-    const marginText = summary.profitMargin !== null ? `${summary.profitMargin.toFixed(2)}%` : 'Indisponível';
+    const profitPerKm = summary.totalDistanceKm > 0
+      ? Math.round(summary.economicProfitCents / summary.totalDistanceKm)
+      : 0;
+    const revenuePerKm = summary.totalDistanceKm > 0
+      ? Math.round(summary.totalRevenueCents / summary.totalDistanceKm)
+      : 0;
+    const totalCostCents = summary.totalFuelCents + summary.totalMaintCents + summary.totalDeprCents;
+    const marginText = summary.profitMargin !== null
+      ? `${summary.profitMargin.toFixed(2)}%`
+      : 'Indisponível';
 
     const dailyMap = new Map();
     records.forEach(r => {
@@ -29,11 +36,15 @@ export const ReportsModule = {
     });
     const dailySeries = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
+    const periodLabel = this.state.period === 'all'
+      ? 'Todo o histórico'
+      : `${Dates.formatBR(range.start)} — ${Dates.formatBR(range.end)}`;
+
     container.innerHTML = `
       <section class="stack-md" aria-labelledby="rep-heading">
         <div class="page-header">
           <div class="stack-xs">
-            <span class="eyebrow">${Dates.formatBR(range.start)} — ${Dates.formatBR(range.end)}</span>
+            <span class="eyebrow">${periodLabel}</span>
             <h1 id="rep-heading" class="page-title">Relatórios Analíticos</h1>
           </div>
         </div>
@@ -45,6 +56,7 @@ export const ReportsModule = {
               <option value="week" ${this.state.period === 'week' ? 'selected' : ''}>Esta Semana</option>
               <option value="month" ${this.state.period === 'month' ? 'selected' : ''}>Este Mês</option>
               <option value="year" ${this.state.period === 'year' ? 'selected' : ''}>Este Ano</option>
+              <option value="all" ${this.state.period === 'all' ? 'selected' : ''}>Todo o Período</option>
             </select>
           </div>
           <div class="form-group">
@@ -60,27 +72,37 @@ export const ReportsModule = {
           <article class="metric-card col-6-sm col-4">
             <span class="eyebrow">Faturamento Total</span>
             <span class="metric-value">${Money.format(summary.totalRevenueCents)}</span>
+            <span class="metric-note">${summary.recordCount} lançamento(s) no período</span>
           </article>
+
           <article class="metric-card col-6-sm col-4">
             <span class="eyebrow">Lucro Econômico</span>
             <span class="metric-value">${Money.format(summary.economicProfitCents)}</span>
+            <span class="metric-note">Livre de combustível, manutenção e depreciação</span>
           </article>
+
           <article class="metric-card col-6-sm col-4">
             <span class="eyebrow">Margem Consolidada</span>
             <span class="metric-value">${marginText}</span>
-            <span class="metric-note">Lucro total / faturamento total</span>
+            <span class="metric-note">Lucro total ÷ faturamento total</span>
           </article>
+
           <article class="metric-card col-6-sm col-4">
             <span class="eyebrow">Distância Total</span>
             <span class="metric-value">${summary.totalDistanceKm.toFixed(1)} km</span>
+            <span class="metric-note">Custos totais: ${Money.format(totalCostCents)}</span>
           </article>
+
           <article class="metric-card col-6-sm col-4">
             <span class="eyebrow">Ganho Bruto / km</span>
             <span class="metric-value">${Money.format(revenuePerKm)}</span>
+            <span class="metric-note">Receita média por quilômetro</span>
           </article>
+
           <article class="metric-card col-6-sm col-4">
             <span class="eyebrow">Lucro Econômico / km</span>
             <span class="metric-value">${Money.format(profitPerKm)}</span>
+            <span class="metric-note">Resultado líquido por quilômetro</span>
           </article>
         </div>
 
@@ -88,8 +110,14 @@ export const ReportsModule = {
           <div class="row-between">
             <h2 class="section-title">Evolução Diária — Faturamento vs. Lucro Econômico</h2>
             <div class="row-wrap" aria-hidden="true">
-              <span class="row-wrap"><span class="legend-swatch swatch-revenue"></span><small class="text-muted">Faturamento</small></span>
-              <span class="row-wrap"><span class="legend-swatch swatch-profit"></span><small class="text-muted">Lucro Econômico</small></span>
+              <span class="row-wrap">
+                <span class="legend-swatch swatch-revenue"></span>
+                <small class="text-muted">Faturamento</small>
+              </span>
+              <span class="row-wrap">
+                <span class="legend-swatch swatch-profit"></span>
+                <small class="text-muted">Lucro Econômico</small>
+              </span>
             </div>
           </div>
 
@@ -149,9 +177,14 @@ export const ReportsModule = {
     const chartW = width - padLeft - padRight;
     const chartH = height - padTop - padBottom;
 
-    const maxCents = Math.max(...series.map(s => Math.max(s.revenueCents, Math.abs(s.profitCents))), 10000);
+    const maxCents = Math.max(
+      ...series.map(s => Math.max(s.revenueCents, Math.abs(s.profitCents))),
+      10000
+    );
     const groupWidth = chartW / series.length;
-    const barW = Math.min(26, Math.max(8, groupWidth * 0.34));
+    const barW = Math.min(26, Math.max(4, groupWidth * 0.34));
+    const gap = Math.min(2, groupWidth * 0.08);
+    const labelStep = Math.max(1, Math.ceil(series.length / 10));
 
     const gridLines = [0, 0.5, 1].map(ratio => {
       const y = padTop + chartH - ratio * chartH;
@@ -165,19 +198,34 @@ export const ReportsModule = {
     const bars = series.map((item, i) => {
       const centerX = padLeft + i * groupWidth + groupWidth / 2;
       const revH = (item.revenueCents / maxCents) * chartH;
-      const profH = (Math.max(0, item.profitCents) / maxCents) * chartH;
+      const profH = (Math.abs(item.profitCents) / maxCents) * chartH;
       const revY = padTop + chartH - revH;
       const profY = padTop + chartH - profH;
       const label = Dates.formatBR(item.date).slice(0, 5);
+      const showLabel = i % labelStep === 0 || i === series.length - 1;
 
       return `
-        <rect x="${centerX - barW - 2}" y="${revY}" width="${barW}" height="${revH}" rx="2" class="bar-revenue">
+        <rect
+          x="${centerX - barW - gap}"
+          y="${revY}"
+          width="${barW}"
+          height="${revH}"
+          rx="2"
+          class="bar-revenue"
+          style="--bar-index: ${i}">
           <title>${label} — Faturamento: ${Money.format(item.revenueCents)}</title>
         </rect>
-        <rect x="${centerX + 2}" y="${profY}" width="${barW}" height="${profH}" rx="2" class="${item.profitCents >= 0 ? 'bar-profit' : 'bar-loss'}">
+        <rect
+          x="${centerX + gap}"
+          y="${profY}"
+          width="${barW}"
+          height="${profH}"
+          rx="2"
+          class="${item.profitCents >= 0 ? 'bar-profit' : 'bar-loss'}"
+          style="--bar-index: ${i}">
           <title>${label} — Lucro Econômico: ${Money.format(item.profitCents)}</title>
         </rect>
-        ${series.length <= 15 ? `<text x="${centerX}" y="${height - 8}" text-anchor="middle" class="chart-axis-text">${label}</text>` : ''}
+        ${showLabel ? `<text x="${centerX}" y="${height - 8}" text-anchor="middle" class="chart-axis-text">${label}</text>` : ''}
       `;
     }).join('');
 
