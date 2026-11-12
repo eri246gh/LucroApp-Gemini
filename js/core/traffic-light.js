@@ -1,19 +1,19 @@
 /**
- * Classificador do Indicador de Rentabilidade
+ * Classificador de Rentabilidade (Semântica Monocromática + Rótulos Explícitos)
  */
 export function getProfitabilityStatus(profitMargin, revenueCents, settings = {}) {
   const greenThreshold = settings.greenThreshold ?? 20;
   const yellowThreshold = settings.yellowThreshold ?? 0;
 
   if (revenueCents === 0 || profitMargin === null || profitMargin === undefined) {
-    return { status: 'indeterminate', label: 'Sem faturamento', color: '#9CA3AF' };
+    return { status: 'indeterminate', label: 'Sem faturamento', pillClass: 'pill-outline' };
   }
 
   if (profitMargin >= greenThreshold) {
-    return { status: 'green', label: 'Alta Rentabilidade', color: '#22C55E' };
+    return { status: 'high', label: 'Alta Rentabilidade', pillClass: 'pill-solid' };
   } else if (profitMargin > yellowThreshold) {
-    return { status: 'yellow', label: 'Atenção / Margem Baixa', color: '#FACC15' };
+    return { status: 'low', label: 'Margem Reduzida', pillClass: 'pill-outline' };
   } else {
-    return { status: 'red', label: 'Prejuízo Operacional', color: '#EF4444' };
+    return { status: 'loss', label: 'Prejuízo Operacional', pillClass: 'pill-dashed' };
   }
 }
