@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lucroapp-v3'; // Mude a versão sempre que alterar CSS/JS/HTML
+const CACHE_NAME = 'lucroapp-v4';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -23,48 +23,32 @@ const ASSETS_TO_CACHE = [
   './js/utils/dates.js'
 ];
 
-// Instalação: baixa os novos arquivos para o cache
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
-  // Força o novo Service Worker a se tornar ativo imediatamente
   self.skipWaiting();
 });
 
-// Ativação: apaga caches antigos (ex: lucroapp-v1)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            console.log('[SW] Apagando cache antigo:', cache);
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => self.clients.claim()) // Assume o controle das abas abertas imediatamente
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+    ).then(() => self.clients.claim())
   );
 });
 
-// Interceptação de requisições (Estratégia Network First para HTML / Cache First para assets)
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
   event.respondWith(
     fetch(event.request)
-      .then((networkResponse) => {
-        // Atualiza o cache dinamicamente se a rede responder com sucesso
-        if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+      .then((response) => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
-        return networkResponse;
+        return response;
       })
-      .catch(() => {
-        // Se estiver offline, entrega a versão em cache
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(event.request))
   );
 });
