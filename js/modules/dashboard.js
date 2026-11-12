@@ -11,7 +11,7 @@ export const DashboardModule = {
     customEnd: Dates.getTodayISO()
   },
 
-  getPreviousRange(period, currentRange) {
+  getPreviousRange(currentRange) {
     const start = new Date(currentRange.start + 'T00:00:00');
     const end = new Date(currentRange.end + 'T00:00:00');
     const diffDays = Math.max(1, Math.round((end - start) / 86400000) + 1);
@@ -31,11 +31,12 @@ export const DashboardModule = {
     const vehicles = await VehicleRepository.getAll();
     if (!vehicles.length) {
       container.innerHTML = `
-        <section class="card stack-md">
-          <h1 class="page-title">Bem-vindo ao LucroApp</h1>
-          <p class="text-muted">Para descobrir quanto você realmente ganha por quilômetro e por dia, cadastre primeiro o seu veículo de trabalho.</p>
+        <section class="surface stack-md">
+          <span class="eyebrow">Configuração Inicial</span>
+          <h1 class="page-title">Configure seu veículo de trabalho</h1>
+          <p class="text-muted">Para calcular consumo de combustível, manutenção por quilômetro e depreciação real, cadastre primeiro o veículo utilizado nas corridas.</p>
           <div>
-            <a href="#/veiculos" class="btn btn-primary">Cadastrar Meu Veículo</a>
+            <a href="#/veiculos" class="btn btn-primary">Cadastrar Veículo</a>
           </div>
         </section>
       `;
@@ -49,42 +50,40 @@ export const DashboardModule = {
     const records = await RecordRepository.getByDateRange(range.start, range.end);
     const summary = consolidatePeriod(records);
 
-    const prevRange = this.getPreviousRange(this.state.period, range);
+    const prevRange = this.getPreviousRange(range);
     const prevRecords = await RecordRepository.getByDateRange(prevRange.start, prevRange.end);
     const prevSummary = consolidatePeriod(prevRecords);
 
     const status = getProfitabilityStatus(summary.profitMargin, summary.totalRevenueCents, settings);
     const profitSign = summary.economicProfitCents > 0 ? '+' : '';
     const marginText = summary.profitMargin !== null ? `${summary.profitMargin.toFixed(1)}%` : 'Indisponível';
+    const profitPerKm = summary.totalDistanceKm > 0 ? Math.round(summary.economicProfitCents / summary.totalDistanceKm) : 0;
 
-    let comparisonHtml = '<span class="text-muted">Sem dados no período anterior para comparação.</span>';
+    let comparisonText = 'Sem histórico anterior equivalente para comparação.';
     if (prevRecords.length > 0 && prevSummary.economicProfitCents !== 0) {
       const deltaCents = summary.economicProfitCents - prevSummary.economicProfitCents;
-      const deltaSign = deltaCents >= 0 ? '+' : '';
-      const deltaClass = deltaCents >= 0 ? 'text-green' : 'text-red';
-      comparisonHtml = `<span class="${deltaClass}"><strong>${deltaSign}${Money.format(deltaCents)}</strong> vs. período anterior (${Dates.formatBR(prevRange.start)} a ${Dates.formatBR(prevRange.end)})</span>`;
+      const deltaSign = deltaCents >= 0 ? '+' : '−';
+      comparisonText = `${deltaSign}${Money.format(Math.abs(deltaCents))} em relação a ${Dates.formatBR(prevRange.start)} – ${Dates.formatBR(prevRange.end)}`;
     }
 
     container.innerHTML = `
       <section class="stack-md" aria-labelledby="dash-heading">
         <div class="page-header">
-          <div>
-            <h1 id="dash-heading" class="page-title">Painel Operacional</h1>
-            <p class="field-hint">Período: ${Dates.formatBR(range.start)} até ${Dates.formatBR(range.end)} • Moeda: BRL</p>
+          <div class="stack-xs">
+            <span class="eyebrow">${Dates.formatBR(range.start)} — ${Dates.formatBR(range.end)} • BRL</span>
+            <h1 id="dash-heading" class="page-title">Resumo Financeiro</h1>
           </div>
-          <a href="#/novo" class="btn btn-primary">+ Lançar Trabalho</a>
-        </div>
 
-        <!-- Seletor de Período -->
-        <div class="period-bar" role="group" aria-label="Filtrar período">
-          <button type="button" class="chip-btn ${this.state.period === 'today' ? 'active' : ''}" data-period="today">Hoje</button>
-          <button type="button" class="chip-btn ${this.state.period === 'week' ? 'active' : ''}" data-period="week">Semana</button>
-          <button type="button" class="chip-btn ${this.state.period === 'month' ? 'active' : ''}" data-period="month">Mês</button>
-          <button type="button" class="chip-btn ${this.state.period === 'custom' ? 'active' : ''}" data-period="custom">Personalizado</button>
+          <div class="segmented-control" role="group" aria-label="Selecionar período">
+            <button type="button" class="seg-btn ${this.state.period === 'today' ? 'active' : ''}" data-period="today">Hoje</button>
+            <button type="button" class="seg-btn ${this.state.period === 'week' ? 'active' : ''}" data-period="week">Semana</button>
+            <button type="button" class="seg-btn ${this.state.period === 'month' ? 'active' : ''}" data-period="month">Mês</button>
+            <button type="button" class="seg-btn ${this.state.period === 'custom' ? 'active' : ''}" data-period="custom">Período</button>
+          </div>
         </div>
 
         ${this.state.period === 'custom' ? `
-          <form id="custom-period-form" class="card form-grid">
+          <form id="custom-period-form" class="surface form-grid">
             <div class="form-group">
               <label for="dash-start">Data Inicial</label>
               <input type="date" id="dash-start" value="${this.state.customStart}" required>
@@ -94,93 +93,90 @@ export const DashboardModule = {
               <input type="date" id="dash-end" value="${this.state.customEnd}" required>
             </div>
             <div class="form-group">
-              <label>&nbsp;</label>
-              <button type="submit" class="btn btn-secondary">Aplicar Datas</button>
+              <label for="apply-dates-btn">Filtro</label>
+              <button type="submit" id="apply-dates-btn" class="btn btn-primary">Aplicar Intervalo</button>
             </div>
           </form>
         ` : ''}
 
-        <!-- Indicador de Rentabilidade (Cor + Rótulo + Margem) -->
-        <div class="status-banner status-${status.status}" role="status">
-          <div>
-            <strong>Rentabilidade: ${status.label}</strong>
-            <span class="field-hint"> • Margem Econômica: ${marginText}</span>
-          </div>
-          <span class="badge badge-${status.status === 'green' ? 'success' : status.status === 'yellow' ? 'warning' : status.status === 'red' ? 'danger' : 'neutral'}">
-            ${summary.totalDistanceKm.toFixed(1)} km rodados
-          </span>
-        </div>
-
-        <!-- Grid Principal -->
+        <!-- Estrutura Assimétrica: Resultado Principal + Demonstrativo DRE -->
         <div class="grid-12">
-          <div class="col-12 col-8">
-            <article class="hero-card" aria-label="Lucro econômico no período">
-              <span class="hero-label">Lucro Econômico Real (Estimado)</span>
-              <span class="hero-value ${summary.economicProfitCents >= 0 ? 'positive' : 'negative'}">
-                ${profitSign}${Money.format(summary.economicProfitCents)}
-              </span>
-              <div class="hero-meta">
-                <span>${comparisonHtml}</span>
+          <article class="hero-statement col-7" aria-label="Lucro econômico real">
+            <div class="row-between">
+              <span class="eyebrow">Lucro Econômico Real</span>
+              <span class="pill ${status.pillClass}">${status.label} • ${marginText}</span>
+            </div>
+
+            <div class="hero-number ${summary.economicProfitCents < 0 ? 'is-negative' : ''}">
+              ${profitSign}${Money.format(summary.economicProfitCents)}
+            </div>
+
+            <div class="hero-footer">
+              <span>${comparisonText}</span>
+              <span class="tabular text-strong">${summary.totalDistanceKm.toFixed(1)} km</span>
+            </div>
+          </article>
+
+          <article class="surface col-5 stack-sm" aria-label="Composição do resultado">
+            <div class="row-between">
+              <span class="eyebrow">Demonstrativo Operacional</span>
+              <span class="metric-note">${summary.recordCount} registro(s)</span>
+            </div>
+
+            <div class="ledger-list">
+              <div class="ledger-row">
+                <span>Faturamento Bruto</span>
+                <span class="ledger-amount text-strong">${Money.format(summary.totalRevenueCents)}</span>
               </div>
-            </article>
-          </div>
+              <div class="ledger-row">
+                <span class="text-muted">(−) Combustível Estimado</span>
+                <span class="ledger-amount text-muted">−${Money.format(summary.totalFuelCents)}</span>
+              </div>
+              <div class="ledger-row">
+                <span class="text-muted">(−) Reserva Manutenção</span>
+                <span class="ledger-amount text-muted">−${Money.format(summary.totalMaintCents)}</span>
+              </div>
+              <div class="ledger-row is-total">
+                <span>Dinheiro Livre Estimado</span>
+                <span class="ledger-amount">${Money.format(summary.availableMoneyCents)}</span>
+              </div>
+              <div class="ledger-row">
+                <span class="text-muted">(−) Depreciação Veicular</span>
+                <span class="ledger-amount text-muted">−${Money.format(summary.totalDeprCents)}</span>
+              </div>
+            </div>
+          </article>
 
-          <div class="col-12 col-4">
-            <article class="card stack-sm" aria-label="Dinheiro livre estimado">
-              <span class="kpi-label">Dinheiro Livre Estimado</span>
-              <span class="kpi-value ${summary.availableMoneyCents >= 0 ? 'text-green' : 'text-red'}">
-                ${Money.format(summary.availableMoneyCents)}
-              </span>
-              <span class="kpi-sub">Faturamento bruto descontando combustível e reserva de manutenção (antes da depreciação).</span>
-            </article>
-          </div>
+          <!-- Indicadores Unitários -->
+          <article class="metric-card col-6-sm col-4">
+            <span class="eyebrow">Lucro por KM</span>
+            <span class="metric-value">${Money.format(profitPerKm)}/km</span>
+            <span class="metric-note">Rendimento líquido após custos</span>
+          </article>
 
-          <div class="col-6-sm col-3">
-            <article class="kpi-card">
-              <span class="kpi-label">Faturamento Bruto</span>
-              <span class="kpi-value">${Money.format(summary.totalRevenueCents)}</span>
-              <span class="kpi-sub">${summary.recordCount} lançamento(s)</span>
-            </article>
-          </div>
+          <article class="metric-card col-6-sm col-4">
+            <span class="eyebrow">Custo Operacional Total</span>
+            <span class="metric-value">${Money.format(summary.totalFuelCents + summary.totalMaintCents + summary.totalDeprCents)}</span>
+            <span class="metric-note">Combustível + Manutenção + Depreciação</span>
+          </article>
 
-          <div class="col-6-sm col-3">
-            <article class="kpi-card">
-              <span class="kpi-label">Combustível Estimado</span>
-              <span class="kpi-value text-red">-${Money.format(summary.totalFuelCents)}</span>
-              <span class="kpi-sub">Consumo calculado por km</span>
-            </article>
-          </div>
-
-          <div class="col-6-sm col-3">
-            <article class="kpi-card">
-              <span class="kpi-label">Reserva Manutenção</span>
-              <span class="kpi-value text-yellow">-${Money.format(summary.totalMaintCents)}</span>
-              <span class="kpi-sub">Recomendado guardar</span>
-            </article>
-          </div>
-
-          <div class="col-6-sm col-3">
-            <article class="kpi-card">
-              <span class="kpi-label">Depreciação Estimada</span>
-              <span class="kpi-value text-muted">-${Money.format(summary.totalDeprCents)}</span>
-              <span class="kpi-sub">Desgaste patrimonial</span>
-            </article>
-          </div>
+          <article class="metric-card col-12 col-4">
+            <span class="eyebrow">Ação Rápida</span>
+            <a href="#/novo" class="btn btn-primary btn-block mt-2">Registrar Jornada</a>
+          </article>
         </div>
 
         ${records.length === 0 ? `
-          <div class="alert-box alert-info" role="status">
-            Nenhum trabalho registrado neste período. Use o botão <strong>+ Lançar Trabalho</strong> para registrar sua jornada.
+          <div class="notice notice-strong" role="status">
+            Nenhum lançamento encontrado no intervalo selecionado. Clique em <strong>Registrar Jornada</strong> para adicionar seus ganhos.
           </div>
         ` : ''}
 
-        <!-- Divulgação Progressiva: Explicação da Fórmula -->
         <details class="disclosure">
-          <summary>Como o LucroApp calcula seu resultado?</summary>
-          <div class="disclosure-body stack-sm">
-            <p><strong>1. Dinheiro Livre Estimado:</strong> Faturamento Bruto (−) Combustível Estimado (−) Reserva Recomendada de Manutenção.</p>
-            <p><strong>2. Lucro Econômico Real:</strong> Dinheiro Livre Estimado (−) Depreciação do Veículo pelo uso.</p>
-            <p><strong>3. Cofrinho:</strong> Representa apenas valores que você efetivamente depositou na aba Cofrinho.</p>
+          <summary>Metodologia de cálculo do LucroApp</summary>
+          <div class="disclosure-body stack-xs">
+            <p><strong>Dinheiro Livre Estimado:</strong> Faturamento bruto subtraído do combustível estimado por consumo médio (km/l) e da reserva recomendada para manutenção.</p>
+            <p><strong>Lucro Econômico Real:</strong> Dinheiro livre subtraído da depreciação estimada pelo desgaste quilométrico do veículo.</p>
           </div>
         </details>
       </section>
