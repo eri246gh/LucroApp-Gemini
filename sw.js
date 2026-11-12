@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lucroapp-v2'; // Mude a versão sempre que alterar CSS/JS/HTML
+const CACHE_NAME = 'lucroapp-v3'; // Mude a versão sempre que alterar CSS/JS/HTML
 
 const ASSETS_TO_CACHE = [
   './',
