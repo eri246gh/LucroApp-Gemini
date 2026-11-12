@@ -14,28 +14,25 @@ export const Router = {
     const hash = window.location.hash.slice(1) || '/inicio';
     const cleanPath = hash.split('?')[0];
 
-    // Atualiza o item ativo na Sidebar (Desktop) e Bottom Nav (Mobile)
     const currentRoute = cleanPath.replace('/', '') || 'inicio';
     document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(el => {
       const page = el.getAttribute('data-page');
-      if (page === currentRoute) {
-        el.classList.add('active');
-      } else {
-        el.classList.remove('active');
-      }
+      el.classList.toggle('active', page === currentRoute);
     });
 
     const handler = this.routes[cleanPath] || this.routes['/inicio'];
-    // Suporte tanto ao container #app quanto ao #main-content
-    const container = document.getElementById('app') || document.getElementById('main-content');
-    
+    const container = document.getElementById('app');
+
     if (handler && container) {
-      container.innerHTML = '<div class="card"><p class="text-muted">Carregando...</p></div>';
+      container.classList.remove('view-transition');
+      void container.offsetWidth;
+      container.classList.add('view-transition');
+
       try {
         await handler(container);
       } catch (err) {
         console.error('Erro na navegação:', err);
-        container.innerHTML = `<div class="card"><h3>Erro ao carregar página</h3><p class="text-red">${err.message}</p></div>`;
+        container.innerHTML = `<div class="surface"><h2>Erro ao carregar tela</h2><p class="text-muted">${err.message}</p></div>`;
       }
     }
   },
