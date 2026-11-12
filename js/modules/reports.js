@@ -20,7 +20,6 @@ export const ReportsModule = {
     const revenuePerKm = summary.totalDistanceKm > 0 ? Math.round(summary.totalRevenueCents / summary.totalDistanceKm) : 0;
     const marginText = summary.profitMargin !== null ? `${summary.profitMargin.toFixed(2)}%` : 'Indisponível';
 
-    // Agrupar por data para o gráfico
     const dailyMap = new Map();
     records.forEach(r => {
       const current = dailyMap.get(r.date) || { date: r.date, revenueCents: 0, profitCents: 0 };
@@ -33,15 +32,15 @@ export const ReportsModule = {
     container.innerHTML = `
       <section class="stack-md" aria-labelledby="rep-heading">
         <div class="page-header">
-          <div>
-            <h1 id="rep-heading" class="page-title">Relatórios Financeiros</h1>
-            <p class="field-hint">${Dates.formatBR(range.start)} até ${Dates.formatBR(range.end)}</p>
+          <div class="stack-xs">
+            <span class="eyebrow">${Dates.formatBR(range.start)} — ${Dates.formatBR(range.end)}</span>
+            <h1 id="rep-heading" class="page-title">Relatórios Analíticos</h1>
           </div>
         </div>
 
-        <div class="card form-grid">
+        <div class="surface form-grid">
           <div class="form-group">
-            <label for="rep-period">Período</label>
+            <label for="rep-period">Período de Análise</label>
             <select id="rep-period">
               <option value="week" ${this.state.period === 'week' ? 'selected' : ''}>Esta Semana</option>
               <option value="month" ${this.state.period === 'month' ? 'selected' : ''}>Este Mês</option>
@@ -58,48 +57,36 @@ export const ReportsModule = {
         </div>
 
         <div class="grid-12">
-          <div class="col-6-sm col-4">
-            <article class="kpi-card">
-              <span class="kpi-label">Faturamento Total</span>
-              <span class="kpi-value">${Money.format(summary.totalRevenueCents)}</span>
-            </article>
-          </div>
-          <div class="col-6-sm col-4">
-            <article class="kpi-card">
-              <span class="kpi-label">Lucro Econômico Total</span>
-              <span class="kpi-value ${summary.economicProfitCents >= 0 ? 'text-green' : 'text-red'}">${Money.format(summary.economicProfitCents)}</span>
-            </article>
-          </div>
-          <div class="col-6-sm col-4">
-            <article class="kpi-card">
-              <span class="kpi-label">Margem Consolidada</span>
-              <span class="kpi-value">${marginText}</span>
-              <span class="kpi-sub">Lucro total ÷ faturamento total</span>
-            </article>
-          </div>
-          <div class="col-6-sm col-4">
-            <article class="kpi-card">
-              <span class="kpi-label">Distância Total</span>
-              <span class="kpi-value">${summary.totalDistanceKm.toFixed(1)} km</span>
-            </article>
-          </div>
-          <div class="col-6-sm col-4">
-            <article class="kpi-card">
-              <span class="kpi-label">Ganho Bruto / km</span>
-              <span class="kpi-value">${Money.format(revenuePerKm)}</span>
-            </article>
-          </div>
-          <div class="col-6-sm col-4">
-            <article class="kpi-card">
-              <span class="kpi-label">Lucro Econômico / km</span>
-              <span class="kpi-value text-green">${Money.format(profitPerKm)}</span>
-            </article>
-          </div>
+          <article class="metric-card col-6-sm col-4">
+            <span class="eyebrow">Faturamento Total</span>
+            <span class="metric-value">${Money.format(summary.totalRevenueCents)}</span>
+          </article>
+          <article class="metric-card col-6-sm col-4">
+            <span class="eyebrow">Lucro Econômico</span>
+            <span class="metric-value">${Money.format(summary.economicProfitCents)}</span>
+          </article>
+          <article class="metric-card col-6-sm col-4">
+            <span class="eyebrow">Margem Consolidada</span>
+            <span class="metric-value">${marginText}</span>
+            <span class="metric-note">Lucro total / faturamento total</span>
+          </article>
+          <article class="metric-card col-6-sm col-4">
+            <span class="eyebrow">Distância Total</span>
+            <span class="metric-value">${summary.totalDistanceKm.toFixed(1)} km</span>
+          </article>
+          <article class="metric-card col-6-sm col-4">
+            <span class="eyebrow">Ganho Bruto / km</span>
+            <span class="metric-value">${Money.format(revenuePerKm)}</span>
+          </article>
+          <article class="metric-card col-6-sm col-4">
+            <span class="eyebrow">Lucro Econômico / km</span>
+            <span class="metric-value">${Money.format(profitPerKm)}</span>
+          </article>
         </div>
 
-        <div class="card stack-md">
+        <div class="surface stack-md">
           <div class="row-between">
-            <h2>Evolução Diária (Faturamento vs. Lucro Econômico)</h2>
+            <h2 class="section-title">Evolução Diária — Faturamento vs. Lucro Econômico</h2>
             <div class="row-wrap" aria-hidden="true">
               <span class="row-wrap"><span class="legend-swatch swatch-revenue"></span><small class="text-muted">Faturamento</small></span>
               <span class="row-wrap"><span class="legend-swatch swatch-profit"></span><small class="text-muted">Lucro Econômico</small></span>
@@ -110,7 +97,7 @@ export const ReportsModule = {
 
           ${dailySeries.length > 0 ? `
             <details class="disclosure">
-              <summary>Ver dados do gráfico em tabela acessível</summary>
+              <summary>Tabela de dados do período</summary>
               <div class="disclosure-body table-wrap">
                 <table>
                   <thead>
@@ -123,9 +110,9 @@ export const ReportsModule = {
                   <tbody>
                     ${dailySeries.map(d => `
                       <tr>
-                        <td>${Dates.formatBR(d.date)}</td>
+                        <td class="tabular">${Dates.formatBR(d.date)}</td>
                         <td class="num text-right">${Money.format(d.revenueCents)}</td>
-                        <td class="num text-right">${Money.format(d.profitCents)}</td>
+                        <td class="num text-right text-strong">${Money.format(d.profitCents)}</td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -150,13 +137,13 @@ export const ReportsModule = {
 
   buildSvgChart(series) {
     if (!series.length) {
-      return '<p class="text-muted">Sem registros suficientes no período para exibir o gráfico.</p>';
+      return '<p class="text-muted">Sem registros suficientes no período para gerar o gráfico.</p>';
     }
 
     const width = 680;
     const height = 240;
-    const padLeft = 72;
-    const padBottom = 32;
+    const padLeft = 74;
+    const padBottom = 30;
     const padTop = 16;
     const padRight = 16;
     const chartW = width - padLeft - padRight;
@@ -164,7 +151,7 @@ export const ReportsModule = {
 
     const maxCents = Math.max(...series.map(s => Math.max(s.revenueCents, Math.abs(s.profitCents))), 10000);
     const groupWidth = chartW / series.length;
-    const barW = Math.min(28, Math.max(8, groupWidth * 0.34));
+    const barW = Math.min(26, Math.max(8, groupWidth * 0.34));
 
     const gridLines = [0, 0.5, 1].map(ratio => {
       const y = padTop + chartH - ratio * chartH;
@@ -184,20 +171,20 @@ export const ReportsModule = {
       const label = Dates.formatBR(item.date).slice(0, 5);
 
       return `
-        <rect x="${centerX - barW - 2}" y="${revY}" width="${barW}" height="${revH}" rx="3" class="bar-revenue">
+        <rect x="${centerX - barW - 2}" y="${revY}" width="${barW}" height="${revH}" rx="2" class="bar-revenue">
           <title>${label} — Faturamento: ${Money.format(item.revenueCents)}</title>
         </rect>
-        <rect x="${centerX + 2}" y="${profY}" width="${barW}" height="${profH}" rx="3" class="${item.profitCents >= 0 ? 'bar-profit' : 'bar-loss'}">
+        <rect x="${centerX + 2}" y="${profY}" width="${barW}" height="${profH}" rx="2" class="${item.profitCents >= 0 ? 'bar-profit' : 'bar-loss'}">
           <title>${label} — Lucro Econômico: ${Money.format(item.profitCents)}</title>
         </rect>
-        ${series.length <= 15 ? `<text x="${centerX}" y="${height - 10}" text-anchor="middle" class="chart-axis-text">${label}</text>` : ''}
+        ${series.length <= 15 ? `<text x="${centerX}" y="${height - 8}" text-anchor="middle" class="chart-axis-text">${label}</text>` : ''}
       `;
     }).join('');
 
     return `
       <svg viewBox="0 0 ${width} ${height}" class="svg-chart" role="img" aria-labelledby="svg-title svg-desc">
-        <title id="svg-title">Gráfico de Faturamento e Lucro Econômico</title>
-        <desc id="svg-desc">Comparativo diário em reais entre faturamento bruto e lucro econômico no período selecionado.</desc>
+        <title id="svg-title">Comparativo diário de faturamento e lucro</title>
+        <desc id="svg-desc">Gráfico de barras comparando faturamento bruto e lucro econômico por dia.</desc>
         ${gridLines}
         ${bars}
       </svg>
