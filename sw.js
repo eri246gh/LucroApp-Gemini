@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lucroapp-v6';
+const CACHE_NAME = 'lucroapp-v7';
 
 const ASSETS_TO_CACHE = [
   './',
