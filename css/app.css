@@ -1,5 +1,5 @@
 /* ==========================================================================
-   1. SISTEMA MONOCROMÁTICO (MODO CLARO E MODO NOTURNO)
+   1. SISTEMA MONOCROMÁTICO E TOKENS DE MOVIMENTO
    ========================================================================== */
 :root {
   color-scheme: light;
@@ -32,6 +32,13 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
+
+  /* Curvas e durações de animação */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 140ms;
+  --dur-base: 260ms;
+  --dur-slow: 380ms;
 }
 
 html.night-mode {
@@ -52,7 +59,63 @@ html.night-mode {
 }
 
 /* ==========================================================================
-   2. RESET E TIPOGRAFIA EDITORIAL
+   2. KEYFRAMES E ANIMAÇÕES ESTRUTURAIS
+   ========================================================================== */
+@keyframes viewEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes panelDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes iconPop {
+  from {
+    opacity: 0;
+    transform: rotate(-35deg) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+/* ==========================================================================
+   3. RESET, TIPOGRAFIA E ACESSIBILIDADE
    ========================================================================== */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -67,6 +130,7 @@ body {
   font-size: 15px;
   line-height: 1.5;
   min-height: 100vh;
+  transition: background-color var(--dur-base) var(--ease-snappy), color var(--dur-base) var(--ease-snappy);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -74,7 +138,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -119,7 +185,7 @@ button, input, select {
 .text-right { text-align: right; }
 
 /* ==========================================================================
-   3. ESTRUTURA DE NAVEGAÇÃO (SIDEBAR + TOPBAR + MOBILE DOCK)
+   4. ESTRUTURA DE NAVEGAÇÃO (SIDEBAR + TOPBAR + MOBILE DOCK)
    ========================================================================== */
 .app-layout {
   display: flex;
@@ -135,6 +201,7 @@ button, input, select {
   position: fixed;
   inset: 0 auto 0 0;
   z-index: 100;
+  transition: background-color var(--dur-base) var(--ease-snappy), border-color var(--dur-base) var(--ease-snappy);
 }
 
 .sidebar-brand {
@@ -155,6 +222,11 @@ button, input, select {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform var(--dur-fast) var(--ease-snappy);
+}
+
+.sidebar-brand:hover .brand-mark {
+  transform: scale(1.04);
 }
 
 .brand-name {
@@ -194,12 +266,19 @@ button, input, select {
   color: var(--ink-secondary);
   font-size: 0.9rem;
   font-weight: 500;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition: background-color var(--dur-fast) var(--ease-snappy),
+              color var(--dur-fast) var(--ease-snappy),
+              transform var(--dur-fast) var(--ease-snappy),
+              box-shadow var(--dur-fast) var(--ease-snappy);
 }
 
 .nav-item:hover {
   background-color: var(--bg-subtle);
   color: var(--ink-primary);
+}
+
+.nav-item:active {
+  transform: scale(0.985);
 }
 
 .nav-item.active {
@@ -229,6 +308,7 @@ button, input, select {
   position: sticky;
   top: 0;
   z-index: 90;
+  transition: background-color var(--dur-base) var(--ease-snappy), border-color var(--dur-base) var(--ease-snappy);
 }
 
 .mobile-brand {
@@ -242,9 +322,14 @@ button, input, select {
   margin-left: auto;
 }
 
-/* Alternador Modo Noturno */
+/* Alternador Modo Noturno com transição de ícone */
 html:not(.night-mode) .icon-sun { display: none; }
 html.night-mode .icon-moon { display: none; }
+
+html:not(.night-mode) .icon-moon,
+html.night-mode .icon-sun {
+  animation: iconPop var(--dur-base) var(--ease-out-expo);
+}
 
 .btn-icon {
   width: 40px;
@@ -257,10 +342,15 @@ html.night-mode .icon-moon { display: none; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-snappy), transform var(--dur-fast) var(--ease-snappy);
 }
 
 .btn-icon:hover {
   background-color: var(--bg-subtle);
+}
+
+.btn-icon:active {
+  transform: scale(0.94);
 }
 
 .container {
@@ -268,6 +358,10 @@ html.night-mode .icon-moon { display: none; }
   max-width: 1080px;
   margin: 0 auto;
   padding: var(--space-6);
+}
+
+.container.view-transition {
+  animation: viewEnter var(--dur-base) var(--ease-out-expo);
 }
 
 /* Navegação Inferior Mobile */
@@ -284,6 +378,7 @@ html.night-mode .icon-moon { display: none; }
   justify-content: space-around;
   align-items: center;
   z-index: 120;
+  transition: background-color var(--dur-base) var(--ease-snappy), border-color var(--dur-base) var(--ease-snappy);
 }
 
 .bottom-nav-item {
@@ -297,6 +392,11 @@ html.night-mode .icon-moon { display: none; }
   font-size: 0.7rem;
   font-weight: 500;
   color: var(--ink-muted);
+  transition: color var(--dur-fast) var(--ease-snappy), transform var(--dur-fast) var(--ease-snappy);
+}
+
+.bottom-nav-item:active {
+  transform: scale(0.93);
 }
 
 .bottom-nav-item.active {
@@ -313,6 +413,11 @@ html.night-mode .icon-moon { display: none; }
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform var(--dur-fast) var(--ease-snappy);
+}
+
+.bottom-nav-cta:active .cta-square {
+  transform: scale(0.92);
 }
 
 @media (max-width: 1023px) {
@@ -328,13 +433,24 @@ html.night-mode .icon-moon { display: none; }
 }
 
 /* ==========================================================================
-   4. SISTEMA DE GRID E UTILITÁRIOS
+   5. SISTEMA DE GRID E ENTRADA ESCALONADA
    ========================================================================== */
 .grid-12 {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: var(--space-4);
 }
+
+.grid-12 > * {
+  animation: cardReveal var(--dur-slow) var(--ease-out-expo) both;
+}
+
+.grid-12 > *:nth-child(1) { animation-delay: 0ms; }
+.grid-12 > *:nth-child(2) { animation-delay: 35ms; }
+.grid-12 > *:nth-child(3) { animation-delay: 70ms; }
+.grid-12 > *:nth-child(4) { animation-delay: 105ms; }
+.grid-12 > *:nth-child(5) { animation-delay: 140ms; }
+.grid-12 > *:nth-child(6) { animation-delay: 175ms; }
 
 .col-12 { grid-column: span 12; }
 .col-7  { grid-column: span 7; }
@@ -358,7 +474,7 @@ html.night-mode .icon-moon { display: none; }
 .mt-4 { margin-top: var(--space-4); }
 
 /* ==========================================================================
-   5. COMPONENTES ARQUITETURAIS (SUPERFÍCIES, DRE, BOTÕES, FORMULÁRIOS)
+   6. COMPONENTES ARQUITETURAIS (SUPERFÍCIES, DRE, BOTÕES, FORMULÁRIOS)
    ========================================================================== */
 .page-header {
   display: flex;
@@ -399,6 +515,7 @@ html.night-mode .icon-moon { display: none; }
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-md);
   padding: var(--space-5);
+  transition: background-color var(--dur-base) var(--ease-snappy), border-color var(--dur-base) var(--ease-snappy);
 }
 
 /* Painel Principal de Lucro (Hero Monocromático) */
@@ -411,6 +528,7 @@ html.night-mode .icon-moon { display: none; }
   flex-direction: column;
   justify-content: space-between;
   gap: var(--space-4);
+  transition: background-color var(--dur-base) var(--ease-snappy), border-color var(--dur-base) var(--ease-snappy);
 }
 
 .hero-number {
@@ -440,7 +558,7 @@ html.night-mode .icon-moon { display: none; }
   color: var(--ink-secondary);
 }
 
-/* Demonstrativo DRE (Waterfall de Custos) */
+/* Demonstrativo DRE */
 .ledger-list {
   display: flex;
   flex-direction: column;
@@ -451,9 +569,14 @@ html.night-mode .icon-moon { display: none; }
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-3) 0;
+  padding: var(--space-3) var(--space-1);
   border-bottom: 1px solid var(--border-hairline);
   font-size: 0.92rem;
+  transition: background-color var(--dur-fast) var(--ease-snappy);
+}
+
+.ledger-row:hover {
+  background-color: var(--bg-subtle);
 }
 
 .ledger-row:last-child {
@@ -477,6 +600,11 @@ html.night-mode .icon-moon { display: none; }
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  transition: border-color var(--dur-fast) var(--ease-snappy), background-color var(--dur-base) var(--ease-snappy);
+}
+
+.metric-card:hover {
+  border-color: var(--ink-muted);
 }
 
 .metric-value {
@@ -512,10 +640,17 @@ html.night-mode .icon-moon { display: none; }
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-snappy),
+              color var(--dur-fast) var(--ease-snappy),
+              transform var(--dur-fast) var(--ease-snappy);
 }
 
 .seg-btn:hover {
   color: var(--ink-primary);
+}
+
+.seg-btn:active {
+  transform: scale(0.96);
 }
 
 .seg-btn.active {
@@ -535,6 +670,7 @@ html.night-mode .icon-moon { display: none; }
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+  transition: background-color var(--dur-fast) var(--ease-snappy), border-color var(--dur-fast) var(--ease-snappy);
 }
 
 .pill-solid {
@@ -554,13 +690,14 @@ html.night-mode .icon-moon { display: none; }
   border: 1px dashed var(--border-strong);
 }
 
-/* Alertas */
+/* Alertas e Painéis Dinâmicos */
 .notice {
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-hairline);
   background-color: var(--bg-subtle);
   font-size: 0.88rem;
+  animation: panelDrop var(--dur-base) var(--ease-out-expo);
 }
 
 .notice-strong {
@@ -568,7 +705,15 @@ html.night-mode .icon-moon { display: none; }
   background-color: var(--bg-surface);
 }
 
-/* Botões */
+#custom-period-form:not(.hidden),
+#vehicle-form-area:not(.hidden),
+#fuel-form-area:not(.hidden),
+#snapshot-detail-area:not(.hidden),
+#shift-group:not(.hidden) {
+  animation: panelDrop var(--dur-base) var(--ease-out-expo);
+}
+
+/* Botões com Resposta Tátil */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -581,7 +726,14 @@ html.night-mode .icon-moon { display: none; }
   font-size: 0.9rem;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: opacity 0.15s ease, background-color 0.15s ease;
+  transition: opacity var(--dur-fast) var(--ease-snappy),
+              background-color var(--dur-fast) var(--ease-snappy),
+              color var(--dur-fast) var(--ease-snappy),
+              transform var(--dur-fast) var(--ease-snappy);
+}
+
+.btn:active {
+  transform: scale(0.98);
 }
 
 .btn-primary {
@@ -648,6 +800,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-xs);
   color: var(--ink-primary);
+  transition: border-color var(--dur-fast) var(--ease-snappy), background-color var(--dur-base) var(--ease-snappy);
 }
 
 .form-group input:focus, .form-group select:focus {
@@ -670,6 +823,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.disclosure[open] .disclosure-body {
+  animation: panelDrop var(--dur-base) var(--ease-out-expo);
 }
 
 .disclosure-body {
@@ -707,13 +864,14 @@ td {
   border-bottom: 1px solid var(--border-hairline);
   font-size: 0.9rem;
   vertical-align: middle;
+  transition: background-color var(--dur-fast) var(--ease-snappy);
 }
 
 tr:hover td {
   background-color: var(--bg-subtle);
 }
 
-/* Gráfico SVG Monocromático */
+/* Gráfico SVG Monocromático com Animação de Barras */
 .svg-chart {
   width: 100%;
   height: auto;
@@ -729,6 +887,15 @@ tr:hover td {
   fill: var(--ink-muted);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+}
+
+.bar-revenue,
+.bar-profit,
+.bar-loss {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: barGrow var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--bar-index, 0) * 28ms);
 }
 
 .bar-revenue {
