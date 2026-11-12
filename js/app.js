@@ -1,7 +1,6 @@
 import { Router } from './router.js';
 import { DashboardModule } from './modules/dashboard.js';
 import { RecordsModule } from './modules/records.js';
-import { CofrinhoModule } from './modules/cofrinho.js';
 import { VehiclesModule } from './modules/vehicles.js';
 import { FuelModule } from './modules/fuel.js';
 import { ReportsModule } from './modules/reports.js';
@@ -11,7 +10,7 @@ import { openDatabase } from './database/database.js';
 
 class App {
   static settings = {
-    theme: 'dark',
+    theme: 'light',
     greenThreshold: 20,
     yellowThreshold: 0
   };
@@ -19,6 +18,7 @@ class App {
   static async init() {
     await this.loadSettings();
     this.applyTheme(this.settings.theme);
+    this.setupThemeToggle();
     this.setupNetworkListeners();
     this.registerServiceWorker();
     await this.updateHeaderBadge();
@@ -26,7 +26,6 @@ class App {
     Router.register('/inicio', (c) => DashboardModule.render(c, this.settings));
     Router.register('/historico', (c) => RecordsModule.renderHistory(c, this.settings));
     Router.register('/novo', (c) => RecordsModule.renderForm(c, () => Router.navigate('/inicio')));
-    Router.register('/cofrinho', (c) => CofrinhoModule.render(c));
     Router.register('/veiculos', (c) => VehiclesModule.render(c));
     Router.register('/abastecimentos', (c) => FuelModule.render(c));
     Router.register('/relatorios', (c) => ReportsModule.render(c));
@@ -37,6 +36,10 @@ class App {
 
   static async loadSettings() {
     try {
+      const localTheme = localStorage.getItem('lucroapp_theme');
+      if (localTheme === 'night' || localTheme === 'light') {
+        this.settings.theme = localTheme;
+      }
       const db = await openDatabase();
       const saved = await new Promise((resolve) => {
         const tx = db.transaction('settings', 'readonly');
@@ -46,12 +49,15 @@ class App {
       });
       if (saved) this.settings = { ...this.settings, ...saved };
     } catch {
-      // Fallback para configurações padrão
+      // Usa configuração padrão
     }
   }
 
   static async saveSettings(newSettings) {
     this.settings = { ...this.settings, ...newSettings };
+    try {
+      localStorage.setItem('lucroapp_theme', this.settings.theme);
+    } catch {}
     const db = await openDatabase();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('settings', 'readwrite');
@@ -62,10 +68,22 @@ class App {
   }
 
   static applyTheme(theme) {
-    document.body.classList.toggle('light-theme', theme === 'light');
-    document.body.classList.toggle('dark-theme', theme !== 'light');
+    const isNight = theme === 'night';
+    document.documentElement.classList.toggle('night-mode', isNight);
     const metaTheme = document.querySelector('meta[name="theme-color"]');
-    if (metaTheme) metaTheme.setAttribute('content', theme === 'light' ? '#F4F6F5' : '#111612');
+    if (metaTheme) metaTheme.setAttribute('content', isNight ? '#09090B' : '#FFFFFF');
+  }
+
+  static setupThemeToggle() {
+    const btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const nextTheme = this.settings.theme === 'night' ? 'light' : 'night';
+      this.applyTheme(nextTheme);
+      await this.saveSettings({ theme: nextTheme });
+      const select = document.getElementById('cfg-theme');
+      if (select) select.value = nextTheme;
+    });
   }
 
   static setupNetworkListeners() {
@@ -86,10 +104,10 @@ class App {
     const active = vehicles.find(v => v.active) || vehicles[0];
     if (active) {
       badge.textContent = `${active.brand} ${active.model}`;
-      badge.className = 'badge badge-success';
+      badge.className = 'pill pill-outline';
     } else {
       badge.textContent = 'Cadastrar Veículo';
-      badge.className = 'badge badge-warning';
+      badge.className = 'pill pill-dashed';
     }
   }
 
@@ -97,56 +115,51 @@ class App {
     container.innerHTML = `
       <section class="stack-md" aria-labelledby="mais-heading">
         <div class="page-header">
-          <h1 id="mais-heading" class="page-title">Ferramentas e Configurações</h1>
+          <div class="stack-xs">
+            <span class="eyebrow">Sistema e Dados</span>
+            <h1 id="mais-heading" class="page-title">Ajustes e Ferramentas</h1>
+          </div>
         </div>
 
         <div class="grid-12">
-          <div class="col-12 col-6">
-            <div class="card stack-sm">
-              <h2>Módulos Operacionais</h2>
-              <a href="#/veiculos" class="btn btn-secondary">Meus Veículos e Parâmetros</a>
-              <a href="#/abastecimentos" class="btn btn-secondary">Controle de Abastecimentos</a>
-              <a href="#/relatorios" class="btn btn-secondary">Relatórios Avançados</a>
-            </div>
+          <div class="surface col-6 stack-sm">
+            <h2 class="section-title">Operação</h2>
+            <a href="#/veiculos" class="btn btn-secondary">Gerenciar Veículos</a>
+            <a href="#/abastecimentos" class="btn btn-secondary">Registros de Abastecimento</a>
+            <a href="#/relatorios" class="btn btn-secondary">Relatórios Analíticos</a>
           </div>
 
-          <div class="col-12 col-6">
-            <form id="settings-form" class="card stack-sm">
-              <h2>Aparência e Rentabilidade</h2>
-              <div class="form-group">
-                <label for="cfg-theme">Tema da Interface</label>
-                <select id="cfg-theme">
-                  <option value="dark" ${this.settings.theme === 'dark' ? 'selected' : ''}>Escuro (Padrão)</option>
-                  <option value="light" ${this.settings.theme === 'light' ? 'selected' : ''}>Claro</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="cfg-green">Margem Verde — Alta Rentabilidade (%)</label>
-                <input type="number" step="1" min="1" max="100" id="cfg-green" value="${this.settings.greenThreshold}" required>
-              </div>
-              <button type="submit" class="btn btn-primary">Salvar Preferências</button>
-              <div id="cfg-feedback" class="alert-box alert-success hidden" role="status">Preferências atualizadas.</div>
-            </form>
+          <form id="settings-form" class="surface col-6 stack-sm">
+            <h2 class="section-title">Aparência e Parâmetros</h2>
+            <div class="form-group">
+              <label for="cfg-theme">Modo de Exibição</label>
+              <select id="cfg-theme">
+                <option value="light" ${this.settings.theme === 'light' ? 'selected' : ''}>Modo Claro (Preto no Branco)</option>
+                <option value="night" ${this.settings.theme === 'night' ? 'selected' : ''}>Modo Noturno (Branco no Preto)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="cfg-green">Limiar de Alta Rentabilidade (%)</label>
+              <input type="number" step="1" min="1" max="100" id="cfg-green" value="${this.settings.greenThreshold}" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar Preferências</button>
+            <div id="cfg-feedback" class="notice notice-strong hidden" role="status">Preferências salvas.</div>
+          </form>
+
+          <div class="surface col-6 stack-sm">
+            <h2 class="section-title">Backup Local (JSON)</h2>
+            <p class="metric-note">Seus registros ficam armazenados apenas neste navegador. Exporte cópias periódicas para evitar perda ao limpar dados do dispositivo.</p>
+            <button type="button" id="btn-export" class="btn btn-secondary">Exportar Arquivo JSON</button>
+            <label class="btn btn-secondary">
+              Restaurar Arquivo JSON
+              <input type="file" id="input-import" accept=".json" class="hidden">
+            </label>
           </div>
 
-          <div class="col-12 col-6">
-            <div class="card stack-sm">
-              <h2>Backup e Restauração (JSON)</h2>
-              <p class="field-hint">O arquivo JSON contém seus dados financeiros pessoais. Limpar os dados do navegador apaga os registros locais se não houver backup.</p>
-              <button type="button" id="btn-export" class="btn btn-secondary">Exportar Backup Completo</button>
-              <label class="btn btn-secondary">
-                Restaurar Backup JSON
-                <input type="file" id="input-import" accept=".json" class="hidden">
-              </label>
-            </div>
-          </div>
-
-          <div class="col-12 col-6">
-            <div class="card stack-sm">
-              <h2>Privacidade e Dados Locais</h2>
-              <p class="field-hint">O LucroApp funciona 100% no seu dispositivo. Nenhum dado financeiro ou localização é enviado a servidores externos.</p>
-              <button type="button" id="btn-wipe-data" class="btn btn-danger">Apagar Todos os Dados Locais</button>
-            </div>
+          <div class="surface col-6 stack-sm">
+            <h2 class="section-title">Privacidade e Limpeza</h2>
+            <p class="metric-note">Nenhuma informação financeira ou localização é transmitida para servidores externos.</p>
+            <button type="button" id="btn-wipe-data" class="btn btn-danger">Apagar Todos os Dados Locais</button>
           </div>
         </div>
       </section>
@@ -166,8 +179,8 @@ class App {
       if (e.target.files.length) BackupModule.restoreData(e.target.files[0]);
     });
 
-    container.querySelector('#btn-wipe-data').addEventListener('click', async () => {
-      if (confirm('ATENÇÃO: Isso apagará permanentemente todos os veículos, lançamentos, abastecimentos e o cofrinho. Deseja continuar?')) {
+    container.querySelector('#btn-wipe-data').addEventListener('click', () => {
+      if (confirm('Confirmar exclusão permanente de todos os veículos, lançamentos e abastecimentos?')) {
         indexedDB.deleteDatabase('LucroAppDB');
         window.location.hash = '/inicio';
         window.location.reload();
